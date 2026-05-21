@@ -1,38 +1,41 @@
 import { Action, ActionPanel, Clipboard, Icon, List, Toast, getPreferenceValues, showToast } from "@raycast/api";
 import { useState } from "react";
-import { RutFormat, generateRuts } from "./rut";
+import { RutFormat, calculateVerificationDigit, formatRut, generateRutBody } from "./rut";
 
 type Preferences = {
   defaultFormat: RutFormat;
 };
 
 type RutItem = {
-  value: string;
   index: number;
+  rutBody: number;
+  verificationDigit: string;
 };
 
 const FORMAT_LABELS: Record<RutFormat, string> = {
-  dots: "With dots and dash",
-  dash: "Without dots, with dash",
-  plain: "Without dots or dash",
+  dots: "Con puntos y guion",
+  dash: "Sin puntos, con guion",
+  plain: "Sin puntos y sin guion",
 };
+
+const FORMATS: RutFormat[] = ["dots", "dash", "plain"];
 
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
-  const format = preferences.defaultFormat;
-  const [items, setItems] = useState<RutItem[]>(() => createRutItems(format));
+  const [format, setFormat] = useState<RutFormat>(preferences.defaultFormat);
+  const [items, setItems] = useState<RutItem[]>(() => createRutItems());
+  const ruts = items.map((item) => formatRut(item.rutBody, item.verificationDigit, format));
 
   return (
     <List
       searchBarPlaceholder="Search generated RUTs..."
       actions={
         <ActionPanel>
-          <CopyAllRutsAction ruts={items.map((item) => item.value)} />
-          <Action
-            title="Generate New List"
-            icon={Icon.ArrowClockwise}
-            shortcut={{ modifiers: ["cmd"], key: "r" }}
-            onAction={() => setItems(createRutItems(format))}
+          <RutActions
+            ruts={ruts}
+            currentFormat={format}
+            onFormatChange={setFormat}
+            onRegenerate={() => setItems(createRutItems())}
           />
         </ActionPanel>
       }
@@ -40,19 +43,18 @@ export default function Command() {
       <List.Section title="Generated RUTs" subtitle={`${items.length} RUTs - ${FORMAT_LABELS[format]}`}>
         {items.map((item) => (
           <List.Item
-            key={`${item.index}-${item.value}`}
-            title={item.value}
+            key={`${item.index}-${item.rutBody}`}
+            title={formatRut(item.rutBody, item.verificationDigit, format)}
             subtitle={`RUT ${item.index}`}
             icon={Icon.Person}
             actions={
               <ActionPanel>
-                <CopyRutAction rut={item.value} />
-                <CopyAllRutsAction ruts={items.map((item) => item.value)} />
-                <Action
-                  title="Generate New List"
-                  icon={Icon.ArrowClockwise}
-                  shortcut={{ modifiers: ["cmd"], key: "r" }}
-                  onAction={() => setItems(createRutItems(format))}
+                <RutActions
+                  rut={formatRut(item.rutBody, item.verificationDigit, format)}
+                  ruts={ruts}
+                  currentFormat={format}
+                  onFormatChange={setFormat}
+                  onRegenerate={() => setItems(createRutItems())}
                 />
               </ActionPanel>
             }
@@ -63,11 +65,53 @@ export default function Command() {
   );
 }
 
-function createRutItems(format: RutFormat): RutItem[] {
-  return generateRuts(format).map((value, index) => ({
-    value,
-    index: index + 1,
-  }));
+function createRutItems(): RutItem[] {
+  return Array.from({ length: 10 }, (_, index) => {
+    const rutBody = generateRutBody();
+
+    return {
+      rutBody,
+      verificationDigit: calculateVerificationDigit(rutBody),
+      index: index + 1,
+    };
+  });
+}
+
+function RutActions({
+  rut,
+  ruts,
+  currentFormat,
+  onFormatChange,
+  onRegenerate,
+}: {
+  rut?: string;
+  ruts: string[];
+  currentFormat: RutFormat;
+  onFormatChange: (format: RutFormat) => void;
+  onRegenerate: () => void;
+}) {
+  return (
+    <>
+      {rut ? <CopyRutAction rut={rut} /> : null}
+      <CopyAllRutsAction ruts={ruts} />
+      <Action
+        title="Generate New List"
+        icon={Icon.ArrowClockwise}
+        shortcut={{ modifiers: ["cmd"], key: "r" }}
+        onAction={onRegenerate}
+      />
+      <ActionPanel.Section title="Format">
+        {FORMATS.map((format) => (
+          <Action
+            key={format}
+            title={`${currentFormat === format ? "Current: " : "Use Format: "}${FORMAT_LABELS[format]}`}
+            icon={currentFormat === format ? Icon.CheckCircle : Icon.Circle}
+            onAction={() => onFormatChange(format)}
+          />
+        ))}
+      </ActionPanel.Section>
+    </>
+  );
 }
 
 function CopyRutAction({ rut }: { rut: string }) {
