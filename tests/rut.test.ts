@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateVerificationDigit, formatRut } from "../src/rut";
+import { calculateVerificationDigit, formatRut, generateRuts } from "../src/rut";
 
 describe("RUT utilities", () => {
   it("calculates known verification digits", () => {
@@ -13,5 +13,12 @@ describe("RUT utilities", () => {
     expect(formatRut(12345678, "5", "dots")).toBe("12.345.678-5");
     expect(formatRut(12345678, "5", "dash")).toBe("12345678-5");
     expect(formatRut(12345678, "5", "plain")).toBe("123456785");
+  });
+
+  it("generates 10 formatted RUTs by default", () => {
+    const ruts = generateRuts("dots");
+
+    expect(ruts).toHaveLength(10);
+    expect(ruts.every((rut) => /^\d{1,2}\.\d{3}\.\d{3}-[\dK]$/.test(rut))).toBe(true);
   });
 });

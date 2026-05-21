@@ -2,6 +2,7 @@ export type RutFormat = "dots" | "dash" | "plain";
 
 const MIN_RUT_BODY = 1_000_000;
 const MAX_RUT_BODY = 30_000_000;
+const DEFAULT_RUT_COUNT = 10;
 
 export function calculateVerificationDigit(rutBody: number): string {
   if (!Number.isInteger(rutBody) || rutBody <= 0) {
@@ -46,6 +47,14 @@ export function formatRut(rutBody: number, verificationDigit: string, format: Ru
 export function generateRut(format: RutFormat = "dots"): string {
   const rutBody = generateRutBody();
   return formatRut(rutBody, calculateVerificationDigit(rutBody), format);
+}
+
+export function generateRuts(format: RutFormat = "dots", count = DEFAULT_RUT_COUNT): string[] {
+  if (!Number.isInteger(count) || count <= 0) {
+    throw new Error("RUT count must be a positive integer");
+  }
+
+  return Array.from({ length: count }, () => generateRut(format));
 }
 
 export function generateRutBody(): number {

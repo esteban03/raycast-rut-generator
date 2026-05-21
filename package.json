@@ -13,13 +13,13 @@
     {
       "name": "generate-rut",
       "title": "Generate RUT",
-      "description": "Generate a valid Chilean RUT and copy it to the clipboard.",
+      "description": "Generate a list of valid Chilean RUTs and copy them to the clipboard.",
       "mode": "view",
       "preferences": [
         {
           "name": "defaultFormat",
           "title": "Default Format",
-          "description": "Format used when generating a RUT.",
+          "description": "Format used when generating RUTs.",
           "type": "dropdown",
           "required": true,
           "default": "dots",
@@ -33,7 +33,7 @@
               "value": "dash"
             },
             {
-              "title": "Plain (123456785)",
+              "title": "Without dots or dash (123456785)",
               "value": "plain"
             }
           ]

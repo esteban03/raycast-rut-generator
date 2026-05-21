@@ -15,7 +15,7 @@ declare type Preferences = ExtensionPreferences
 declare namespace Preferences {
   /** Preferences accessible in the `generate-rut` command */
   export type GenerateRut = ExtensionPreferences & {
-  /** Default Format - Format used when generating a RUT. */
+  /** Default Format - Format used when generating RUTs. */
   "defaultFormat": "dots" | "dash" | "plain"
 }
 }

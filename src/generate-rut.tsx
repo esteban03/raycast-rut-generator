@@ -1,85 +1,58 @@
-import {
-  Action,
-  ActionPanel,
-  Clipboard,
-  Detail,
-  Icon,
-  List,
-  Toast,
-  getPreferenceValues,
-  showToast,
-} from "@raycast/api";
-import { useMemo, useState } from "react";
-import { RutFormat, calculateVerificationDigit, formatRut, generateRutBody } from "./rut";
+import { Action, ActionPanel, Clipboard, Icon, List, Toast, getPreferenceValues, showToast } from "@raycast/api";
+import { useState } from "react";
+import { RutFormat, generateRuts } from "./rut";
 
 type Preferences = {
   defaultFormat: RutFormat;
 };
 
 type RutItem = {
-  title: string;
-  subtitle: string;
   value: string;
-  format: RutFormat;
+  index: number;
 };
 
 const FORMAT_LABELS: Record<RutFormat, string> = {
-  dots: "With dots",
-  dash: "With dash",
-  plain: "Plain",
+  dots: "With dots and dash",
+  dash: "Without dots, with dash",
+  plain: "Without dots or dash",
 };
 
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
-  const [rutBody, setRutBody] = useState(() => generateRutBody());
-
-  const verificationDigit = useMemo(() => calculateVerificationDigit(rutBody), [rutBody]);
-  const selectedRut = formatRut(rutBody, verificationDigit, preferences.defaultFormat);
-  const items = useMemo<RutItem[]>(
-    () =>
-      (["dots", "dash", "plain"] as RutFormat[]).map((format) => ({
-        title: formatRut(rutBody, verificationDigit, format),
-        subtitle: FORMAT_LABELS[format],
-        value: formatRut(rutBody, verificationDigit, format),
-        format,
-      })),
-    [rutBody, verificationDigit],
-  );
+  const format = preferences.defaultFormat;
+  const [items, setItems] = useState<RutItem[]>(() => createRutItems(format));
 
   return (
     <List
+      searchBarPlaceholder="Search generated RUTs..."
       actions={
         <ActionPanel>
-          <CopyRutAction rut={selectedRut} />
+          <CopyAllRutsAction ruts={items.map((item) => item.value)} />
           <Action
-            title="Generate Another RUT"
+            title="Generate New List"
             icon={Icon.ArrowClockwise}
             shortcut={{ modifiers: ["cmd"], key: "r" }}
-            onAction={() => setRutBody(generateRutBody())}
+            onAction={() => setItems(createRutItems(format))}
           />
         </ActionPanel>
       }
     >
-      <List.Section title="Generated RUT" subtitle={selectedRut}>
+      <List.Section title="Generated RUTs" subtitle={`${items.length} RUTs - ${FORMAT_LABELS[format]}`}>
         {items.map((item) => (
           <List.Item
-            key={item.format}
-            title={item.title}
-            subtitle={item.subtitle}
+            key={`${item.index}-${item.value}`}
+            title={item.value}
+            subtitle={`RUT ${item.index}`}
             icon={Icon.Person}
             actions={
               <ActionPanel>
                 <CopyRutAction rut={item.value} />
+                <CopyAllRutsAction ruts={items.map((item) => item.value)} />
                 <Action
-                  title="Generate Another RUT"
+                  title="Generate New List"
                   icon={Icon.ArrowClockwise}
                   shortcut={{ modifiers: ["cmd"], key: "r" }}
-                  onAction={() => setRutBody(generateRutBody())}
-                />
-                <Action.Push
-                  title="Show Details"
-                  icon={Icon.Info}
-                  target={<RutDetail rutBody={rutBody} verificationDigit={verificationDigit} />}
+                  onAction={() => setItems(createRutItems(format))}
                 />
               </ActionPanel>
             }
@@ -88,6 +61,13 @@ export default function Command() {
       </List.Section>
     </List>
   );
+}
+
+function createRutItems(format: RutFormat): RutItem[] {
+  return generateRuts(format).map((value, index) => ({
+    value,
+    index: index + 1,
+  }));
 }
 
 function CopyRutAction({ rut }: { rut: string }) {
@@ -108,19 +88,20 @@ function CopyRutAction({ rut }: { rut: string }) {
   );
 }
 
-function RutDetail({ rutBody, verificationDigit }: { rutBody: number; verificationDigit: string }) {
-  const markdown = [
-    "# Generated RUT",
-    "",
-    `**Body:** ${rutBody}`,
-    `**Verification digit:** ${verificationDigit}`,
-    "",
-    "| Format | Value |",
-    "| --- | --- |",
-    `| With dots | ${formatRut(rutBody, verificationDigit, "dots")} |`,
-    `| With dash | ${formatRut(rutBody, verificationDigit, "dash")} |`,
-    `| Plain | ${formatRut(rutBody, verificationDigit, "plain")} |`,
-  ].join("\n");
-
-  return <Detail markdown={markdown} />;
+function CopyAllRutsAction({ ruts }: { ruts: string[] }) {
+  return (
+    <Action
+      title="Copy All RUTs"
+      icon={Icon.Clipboard}
+      shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+      onAction={async () => {
+        await Clipboard.copy(ruts.join("\n"));
+        await showToast({
+          style: Toast.Style.Success,
+          title: "RUTs copied",
+          message: `${ruts.length} RUTs`,
+        });
+      }}
+    />
+  );
 }
