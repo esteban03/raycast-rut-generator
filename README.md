@@ -4,6 +4,8 @@ Un generador de RUT chileno para Raycast.
 
 Genera RUTs chilenos válidos para desarrollo, pruebas, formularios, datos de seed y flujos de QA.
 
+<img width="896" height="606" alt="image" src="https://github.com/user-attachments/assets/19d8ace9-6421-4f69-92e1-6390f17ffff8" />
+
 ## Características
 
 - Genera 10 RUTs chilenos válidos a la vez
